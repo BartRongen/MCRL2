@@ -1,0 +1,21 @@
+sort Refinery = struct r1 | r2 | r3;
+sort Cart = struct c1 | c2 | c3 | c4;
+
+act
+	f_break, f_repaired, furnace_broken, furnace_fixed, m_furnace_broken, m_repair_furnace;
+	r_break, r_repaired, refinery_broken, refinery_fixed, m_refinery_broken, m_repair_refinery: Refinery;
+
+proc
+	Furnace = f_break . f_repaired . Furnace;
+	Main = (m_furnace_broken . m_repair_furnace + m_refinery_broken(r1) . m_repair_refinery(r1) + m_refinery_broken(r2) . m_repair_refinery(r2) + m_refinery_broken(r3) . m_repair_refinery(r3)) . Main;
+	Refinery = (r_break(r1) . r_repaired(r1) + r_break(r2) . r_repaired(r2) + r_break(r3) . r_repaired(r3)) . Refinery;
+init
+	allow(
+	{furnace_broken, furnace_fixed, refinery_broken, refinery_fixed},
+	comm(
+		{ f_break|m_furnace_broken -> furnace_broken,
+			f_repaired|m_repair_furnace -> furnace_fixed,
+			r_break|m_refinery_broken -> refinery_broken,
+			r_repaired|m_repair_refinery -> refinery_fixed},
+		Furnace || Main || Refinery
+	));
