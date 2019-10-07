@@ -4,18 +4,32 @@ sort Cart = struct c1 | c2 | c3 | c4;
 act
 	f_break, f_repaired, furnace_broken, furnace_fixed, m_furnace_broken, m_repair_furnace;
 	r_break, r_repaired, refinery_broken, refinery_fixed, m_refinery_broken, m_repair_refinery: Refinery;
+	c_break, c_immobile, c_repaired, cart_broken, cart_immobile, cart_fixed, m_cart_broken, m_cart_immobile, m_repair_cart: Cart;
 
 proc
-	Furnace = f_break . f_repaired . Furnace;
-	Main = (m_furnace_broken . m_repair_furnace + m_refinery_broken(r1) . m_repair_refinery(r1) + m_refinery_broken(r2) . m_repair_refinery(r2) + m_refinery_broken(r3) . m_repair_refinery(r3)) . Main;
-	Refinery = (r_break(r1) . r_repaired(r1) + r_break(r2) . r_repaired(r2) + r_break(r3) . r_repaired(r3)) . Refinery;
+	%%Furnace = f_break . f_repaired . Furnace;
+	%%Main = (m_furnace_broken . m_repair_furnace + m_refinery_broken(r1) . m_repair_refinery(r1) + m_refinery_broken(r2) . m_repair_refinery(r2) + m_refinery_broken(r3) . m_repair_refinery(r3)) . Main;
+	%%Refinery = (r_break(r1) . r_repaired(r1) + r_break(r2) . r_repaired(r2) + r_break(r3) . r_repaired(r3)) . Refinery;
+	
+	Furn = f_break . f_repaired . Furn;
+	Main_Furn = m_furnace_broken . m_repair_furnace . Main_Furn;
+	Ref(r:Refinery) = r_break(r) . r_repaired(r) . Ref(r);
+	Main_Ref(r:Refinery) = m_refinery_broken(r) . m_repair_refinery(r) . Main_Ref(r);
+	Cart(c:Cart) = (c_break(c) . c_repaired(c) + c_immobile(c) . c_repaired(c)) . Cart(c);
+	Main_Cart(c:Cart) = (m_cart_broken(c) . m_repair_cart(c) + m_cart_immobile(c) . m_repair_cart(c)) . Main_Cart(c);
+	
 init
+
 	allow(
-	{furnace_broken, furnace_fixed, refinery_broken, refinery_fixed},
+	{furnace_broken, furnace_fixed, refinery_broken, refinery_fixed, cart_broken, cart_immobile, cart_fixed},
 	comm(
 		{ f_break|m_furnace_broken -> furnace_broken,
 			f_repaired|m_repair_furnace -> furnace_fixed,
 			r_break|m_refinery_broken -> refinery_broken,
-			r_repaired|m_repair_refinery -> refinery_fixed},
-		Furnace || Main || Refinery
+			r_repaired|m_repair_refinery -> refinery_fixed,
+			c_break|m_cart_broken -> cart_broken,
+			c_immobile|m_cart_immobile -> cart_immobile,
+			c_repaired|m_repair_cart -> cart_fixed},
+		Furn || Main_Furn || Ref(r1) || Main_Ref(r1) || Cart(c1) || Main_Cart(c1) %|| Ref(r2) || Main_Ref(r2) || Ref(r3) || Main_Ref(r3)
 	));
+
