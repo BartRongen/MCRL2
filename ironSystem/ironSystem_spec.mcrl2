@@ -10,14 +10,14 @@ proc
 	%%Furnace = f_break . f_repaired . Furnace;
 	%%Main = (m_furnace_broken . m_repair_furnace + m_refinery_broken(r1) . m_repair_refinery(r1) + m_refinery_broken(r2) . m_repair_refinery(r2) + m_refinery_broken(r3) . m_repair_refinery(r3)) . Main;
 	%%Refinery = (r_break(r1) . r_repaired(r1) + r_break(r2) . r_repaired(r2) + r_break(r3) . r_repaired(r3)) . Refinery;
-	
+
 	Furn = f_break . f_repaired . Furn;
 	Main_Furn = m_furnace_broken . m_repair_furnace . Main_Furn;
 	Ref(r:Refinery) = r_break(r) . r_repaired(r) . Ref(r);
 	Main_Ref(r:Refinery) = m_refinery_broken(r) . m_repair_refinery(r) . Main_Ref(r);
 	Cart(c:Cart) = (c_break(c) . c_repaired(c) + c_immobile(c) . c_repaired(c)) . Cart(c);
 	Main_Cart(c:Cart) = (m_cart_broken(c) . m_repair_cart(c) + m_cart_immobile(c) . m_repair_cart(c)) . Main_Cart(c);
-	
+
 init
 
 	allow(
@@ -33,3 +33,4 @@ init
 		Furn || Main_Furn || Ref(r1) || Main_Ref(r1) || Cart(c1) || Main_Cart(c1) %|| Ref(r2) || Main_Ref(r2) || Ref(r3) || Main_Ref(r3)
 	));
 
+%% test
