@@ -32,9 +32,3 @@ init
 			c_repaired|m_repair_cart -> cart_fixed},
 		Furn || Main_Furn || Ref(r1) || Main_Ref(r1) || Cart(c1) || Main_Cart(c1) %|| Ref(r2) || Main_Ref(r2) || Ref(r3) || Main_Ref(r3)
 	));
-
-<<<<<<< HEAD
-%% Kaas is lekker
-=======
-%% test
->>>>>>> a613afe8408e66c44ec75551fdc790f26a9d2c84
