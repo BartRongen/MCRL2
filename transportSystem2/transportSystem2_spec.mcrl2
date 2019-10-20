@@ -27,7 +27,7 @@ act
 	sent,receive;
 proc
 
-	Cart = sum c:Cart.r_request(c).((locs(getCart(c)) == 0) -> tau.cartbroken(c).cartfixed(c).r_left(c).setCartLoc(locs, c, 2) <> r_left(c) + r_left(c)).
+	Cart = sum c:Cart.r_request(c).((locs(getCart(c)) == 0) -> tau.cartbroken(c).cartfixed(c).r_left(c) <> r_left(c) + r_left(c)).
 					 (tau.cartbroken(c).cartfixed(c).r_fill(c) + r_fill(c)).
 					 (tau.cartbroken(c).cartfixed(c).r_right(c) + r_right(c)).
 					 (tau.cartbroken(c).cartfixed(c).r_empty(c) + r_empty(c)).Cart;
