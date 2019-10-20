@@ -13,7 +13,9 @@ var a: LocArray;
 	n: Nat;
 eqn setCartLoc(a, c, n) = a[getCart(c) -> n];
 
-glob locs : LocArray = (1,2,3,4);
+glob locs : LocArray;
+
+sort switchState = struct up | middle | down;
 
 act
 	s_request, s_left, s_fill, s_right, s_empty: Cart;
