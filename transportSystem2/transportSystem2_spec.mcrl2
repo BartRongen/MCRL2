@@ -1,0 +1,44 @@
+sort Cart = struct c1 | c2 | c3 | c4;
+sort LocArray = Nat -> Nat;
+map getCart: Cart -> Nat;
+eqn
+	getCart(c1) = 1;
+	getCart(c2) = 2;
+	getCart(c3) = 3;
+	getCart(c4) = 4;
+
+map setCartLoc: LocArray # Cart # Nat -> LocArray;
+var a: LocArray;
+	c: Cart;
+	n: Nat;
+eqn setCartLoc(a, c, n) = a[getCart(c) -> n];
+
+glob locs : LocArray;
+
+act
+	s_request, s_left, s_fill, s_right, s_empty: Cart;
+	r_request, r_left, r_fill, r_right, r_empty: Cart;
+	request, left, fill, right, empty: Cart;
+	cartbroken, cartfixed: Cart;
+	r_broken, s_repair: Cart;
+	broken, repaired: Cart;
+	sent,receive;
+proc
+
+	Cart = sum c:Cart.r_request(c).((locs(getCart(c)) == 0) -> tau.cartbroken(c).cartfixed(c).r_left(c) <> r_left(c) + r_left(c)).
+					 (tau.cartbroken(c).cartfixed(c).r_fill(c) + r_fill(c)).
+					 (tau.cartbroken(c).cartfixed(c).r_right(c) + r_right(c)).
+					 (tau.cartbroken(c).cartfixed(c).r_empty(c) + r_empty(c)).Cart;
+	Controller = sum c:Cart.sent.s_request(c).s_left(c).s_fill(c).s_right(c).s_empty(c).receive.Controller;
+	Repair = sum c:Cart.r_broken(c).s_repair(c).Repair;
+
+init 
+	allow(
+		{request, left, fill, right, empty, broken, repaired,sent,receive},
+		comm(
+			{s_request|r_request -> request, s_left|r_left -> left, 
+			 s_fill|r_fill -> fill, s_right|r_right -> right, 
+			 s_empty|r_empty -> empty, cartbroken|r_broken -> broken,
+			 s_repair|cartfixed -> repaired},
+		Cart || Controller || Repair
+	));
