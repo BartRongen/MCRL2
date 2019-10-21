@@ -1,0 +1,68 @@
+sort Cart = struct c1 | c2 | c3 | c4;
+sort Section = struct s1 | s2 | s3 | s4 | s5 | s6 | s7 | s8 | s9;
+sort Refinery = struct r1 | r2 | r3;
+sort SwitchState = struct sw1 | sw2 | sw3;
+
+map getSS: Refinery -> SwitchState;
+eqn 
+	getSS(r1) = sw1;
+	getSS(r2) = sw2;
+	getSS(r3) = sw3;
+
+map getRefSection: Refinery -> Section;
+eqn
+	getRefSection(r1) = s4;
+	getRefSection(r2) = s6;
+	getRefSection(r3) = s8;
+
+map furSection: Section;
+eqn furSection = s2;
+
+map getRefCart: Refinery -> Cart;
+eqn 
+	getRefCart(r1) = c1;
+	getRefCart(r2) = c2;
+	getRefCart(r3) = c3;
+
+act
+	c_move, c_arrived: Cart # Section;
+	c_broken, c_fixed, c_maintenance, c_unload, c_unloaded: Cart;
+	r_send_request, r_received_request, r_receive_iron, r_iron_received, r_broken, r_fixed, r_maintenance: Refinery;
+	f_unload, f_unloaded, f_broken, f_fixed, f_maintenance;
+
+	moved_cart: Cart # Section;
+	fixed_cart, unloaded_cart: Cart;
+	fixed_refinery, iron_requested, iron_received: Refinery;
+	fixed_furnace, unloaded_furnace;
+
+proc
+
+	Controller = (sum r:Refinery . r_received_request(r) . c_move(getRefCart(r), furSection) . f_unload . c_move(getRefCart(r), getRefSection(r)) . c_unload(getRefCart(r)) . r_iron_received(r) . Controller) +
+				 (sum c:Cart . c_maintenance(c) . Controller) +
+				 (f_maintenance . Controller) +
+				 (sum r:Refinery . r_maintenance(r) . Controller);
+
+	Furnace = f_unloaded . Furnace + (f_broken . f_fixed) . Furnace;
+	
+	Cart(c:Cart) = (c_broken(c) . c_fixed(c) . Cart(c)) + 
+				   (sum s:Section . c_arrived(c,s) . Cart(c)) + 
+				   (c_unloaded(c) . Cart(c));
+	
+	Refinery(r:Refinery) = (r_send_request(r) . Refinery(r)) +
+			   (r_receive_iron(r) . Refinery(r)) +
+			   (r_broken(r) . r_fixed(r) . Refinery(r));
+
+init 
+	allow(
+		{moved_cart, fixed_cart, unloaded_cart, fixed_refinery, fixed_furnace, unloaded_furnace, iron_requested, iron_received, c_broken, f_broken, r_broken},
+		comm(
+			{c_move|c_arrived -> moved_cart,
+			 c_maintenance|c_fixed -> fixed_cart,
+			 c_unload|c_unloaded -> unloaded_cart,
+			 f_maintenance|f_fixed -> fixed_furnace,
+			 r_maintenance|r_fixed -> fixed_refinery,
+			 f_unload|f_unloaded -> unloaded_furnace,
+			 r_send_request|r_received_request -> iron_requested,
+			 r_receive_iron|r_iron_received -> iron_received},
+		Controller || Furnace || Cart(c1) || Cart(c2) || Cart(c3) || Cart(c4) || Refinery(r1) || Refinery(r2) || Refinery(r3)
+	));
