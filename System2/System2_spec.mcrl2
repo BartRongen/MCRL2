@@ -1,8 +1,12 @@
 sort Cart = struct c1 | c2 | c3 | c4;
 sort Refinery = struct r1 | r2 | r3;
+%Stores the location of the carts: Nat(indicates which cart) -> Nat(position).
 sort LocArray = Nat -> Nat;
+%Stores the assigned cart to the refinery: Nat(indicates which cart) -> Cart(the cart assigned to the refinery).
 sort RefArray = Nat -> Cart;
+%Stores the oustanding requests: Nat(indicates which refinery) -> Bool (false = no request).
 sort OustandingRequests = Nat -> Bool;
+%Maps the carts to Nat in order to use them in an array (mcrl2 doesn't allow Cart as index).
 map getCart: Cart -> Nat;
 eqn
 	getCart(c1) = 1;
@@ -10,12 +14,14 @@ eqn
 	getCart(c3) = 3;
 	getCart(c4) = 4;
 
+%Maps the refineries to their location.
 map getRefLoc: Refinery -> Nat;
 eqn
 	getRefLoc(r1) = 4;
 	getRefLoc(r2) = 6;
 	getRefLoc(r3) = 8;
 
+%Maps the refineries to Nat in order to use them in an array.
 map getRef: Refinery -> Nat;
 eqn
 	getRef(r1) = 1;
@@ -35,30 +41,48 @@ act
 	section_occupied, section_free: Nat;
 proc
 
+	%The initial Cart process, this will create a sum of a all combinations of cart and refinery. The correct cart is chosen using a(getCart(c)) == getRefLoc(r) since the cart location at when this process is called is always on the spot of the refinery (this needs to be changed later when carts are coming in for repair).
+	%Then it will check which refinery we are on to start the correct Cart# process, with the full property set to false.
 	Cart(a: LocArray) = sum c:Cart, r:Refinery. (a(getCart(c)) == getRefLoc(r)) -> (r_request(c,r). (r==r1) -> Cart4(c, false, a, r) <>
 												 (r==r2) -> Cart6(c, false, a, r) <>
 												 Cart8(c, false, a, r));
+	%This will empty the cart
 	CartEmpty(c: Cart, a: LocArray, r: Refinery) = r_empty(c,r).Cart(a);
+	%This will fill the cart, setting the full property to true.
 	CartFill(c: Cart, a: LocArray, r: Refinery) = r_fill.Cart1(c, true, a, r);
+	%Process for when the cart is at position 0. This one is wrong atm because it shouldn't call CartEmpty (at this moment this is the position of the spare cart, but since we never swap the carts, this doesn't really have a function yet).
 	Cart0(c: Cart, full: Bool, a: LocArray, r: Refinery) = full -> CartEmpty(c, a, r) <>
 												move_to(c, 1).section_free(0).section_occupied(1).Cart1(c, full, a[getCart(c)->1], r);
+	%Process for when the cart is at position 1. When the cart is full, it should move to the refinery via section 2. When the cart is empty, it should be filled.
 	Cart1(c: Cart, full: Bool, a: LocArray, r: Refinery) = full -> move_to(c, 2).section_free(1).section_occupied(2).Cart2(c, full, a[getCart(c)->2], r) <>
 												CartFill(c, a, r);
+	%process for when the cart is at pos 2. When the cart is full, it should move to the refinery via section 3. When the cart is empty, it should move to section 1 to be filled.
 	Cart2(c: Cart, full: Bool, a: LocArray, r: Refinery) = full -> move_to(c, 3).section_free(2).section_occupied(3).Cart3(c, full, a[getCart(c)->3], r) <>
 												move_to(c, 1).section_free(2).section_occupied(1).Cart1(c, full, a[getCart(c)->1], r);
+	%process for when the cart is at pos 3. When the cart is full, it should move to either section 4,6 or 8 depending on which refinery requested the load. When the cart is empty it should move to furnace via section 2.
 	Cart3(c: Cart, full: Bool, a: LocArray, r: Refinery) = full -> ((r==r1) -> move_to(c, 4).section_free(3).section_occupied(4).Cart4(c, full, a[getCart(c)->4], r) <>
 										  			   				(r==r2) -> move_to(c, 6).section_free(3).section_occupied(6).Cart6(c, full, a[getCart(c)->6], r) <>
 										  			  			    move_to(c, 8).section_free(3).section_occupied(8).Cart8(c, full, a[getCart(c)->8], r)) <>
 															move_to(c, 2).section_free(3).section_occupied(2).Cart2(c, full, a[getCart(c)->2], r);
+	%process for when the cart is at pos 4. When the cart is full, it should empty the load (because we are at refinery 1), if empty move to furnace via section 3.
 	Cart4(c: Cart, full: Bool, a: LocArray, r: Refinery) = full -> CartEmpty(c, a, r) <>
 												move_to(c, 3).section_free(4).section_occupied(3).Cart3(c, full, a[getCart(c)->3], r);
+	%Idem as Cart4 but for pos 6/refinery 2.
 	Cart6(c: Cart, full: Bool, a: LocArray, r: Refinery) = full -> CartEmpty(c, a, r) <>
 												move_to(c, 3).section_free(6).section_occupied(3).Cart3(c, full, a[getCart(c)->3], r);
+	%Idem as Cart4, but for pos 8/refinery 2.
 	Cart8(c: Cart, full: Bool, a: LocArray, r: Refinery) = full -> CartEmpty(c, a, r) <>
 												move_to(c, 3).section_free(8).section_occupied(3).Cart3(c, full, a[getCart(c)->3], r);
+	%The controller process
 	Controller(reqs: OustandingRequests) = sum c:Cart, r:Refinery.(s_request(c,r).Controller(reqs[getRef(r)->true]) + s_fill + s_empty(c,r).Controller(reqs[getRef(r)->false])).Controller(reqs);
+	
+	%Starts the Controller process with the correct initial outstanding requests
 	ControllerS(reqs: OustandingRequests) = Controller(reqs[1->false][2->false][3->false]);
+	
+	%The repair process
 	Repair = sum c:Cart.r_broken(c).s_repair(c).Repair;
+
+	%Stars the Cart process with the carts at the initial positions.
 	Carts(a: LocArray, r: RefArray) = Cart(a[1->4][2->6][3->8][4->0]);
 
 init 
