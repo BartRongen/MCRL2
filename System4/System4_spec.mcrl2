@@ -1,6 +1,7 @@
 sort Cart = struct c1 | c2 | c3 | c4;
 sort SwitchState = struct up | middle | down;
 sort Refinery = struct r1 | r2 | r3;
+sort Section = struct s1 | s2 | s3 | s4 | s5 | s6 | s7 | s8 | s9;
 %Stores the location of the carts: Nat(indicates which cart) -> Nat(position).
 sort LocArray = Nat -> Section;
 %Stores the assigned cart to the refinery: Nat(indicates which cart) -> Cart(the cart assigned to the refinery).
@@ -36,6 +37,18 @@ eqn
 	getRef(r1) = 1;
 	getRef(r2) = 2;
 	getRef(r3) = 3;
+
+map getSection: Section -> Nat;
+eqn
+	getSection(s1) = 1;
+	getSection(s2) = 2;
+	getSection(s3) = 3;
+	getSection(s4) = 4;
+	getSection(s5) = 5;
+	getSection(s6) = 6;
+	getSection(s7) = 7;
+	getSection(s8) = 8;
+	getSection(s9) = 9;
 
 act
 	%Requests between controller and cartcontroller
