@@ -1,0 +1,73 @@
+sort Cart = struct c1 | c2 | c3 | c4;
+sort Section = struct 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+sort SwitchState = struct up | middle | down;
+sort Refinery = struct r1 | r2 | r3;
+%Stores the location of the carts: Nat(indicates which cart) -> Nat(position).
+sort LocArray = Nat -> Section;
+%Stores the assigned cart to the refinery: Nat(indicates which cart) -> Cart(the cart assigned to the refinery).
+sort RefMap = Nat -> Cart;
+%Stores the oustanding requests: Nat(indicates which refinery) -> Bool (false = no request).
+sort OustandingRequests = Nat -> Bool;
+%Stores a boolean for each cart whether it is full
+sort IsFull = Nat -> Bool;
+%Stores the broken states of the refineries
+sort RefBroken = Nat -> Bool;
+
+%Maps the carts to Nat in order to use them in an array (mcrl2 doesn't allow Cart as index).
+map getCart: Cart -> Nat;
+eqn
+	getCart(c1) = 1;
+	getCart(c2) = 2;
+	getCart(c3) = 3;
+	getCart(c4) = 4;
+
+%Maps the refineries to their location.
+map getRefLoc: Refinery -> Section;
+eqn
+	getRefLoc(r1) = 4;
+	getRefLoc(r2) = 6;
+	getRefLoc(r3) = 8;
+
+%Maps the refineries to Nat in order to use them in an array.
+map getRef: Refinery -> Nat;
+eqn
+	getRef(r1) = 1;
+	getRef(r2) = 2;
+	getRef(r3) = 3;
+
+act
+	%Requests between controller and cartcontroller
+	s_request, r_request, request: Cart # Refinery;
+	s_empty, r_empty, receive_load: Cart # Refinery;
+	
+	%Furnace unloading
+	s_fill, r_fill, furnace_unload; 
+
+	%Breaking of furnace
+	r_furnace_broken, s_furnace_broken, furnace_broken, r_furnace_fixed, s_furnace_fixed, furnace_fixed;
+	
+	%Breaking of refinery
+	r_ref_broken, s_ref_broken, refinery_broken, r_ref_fixed, s_ref_fixed, refinery_fixed: Refinery;
+	s_move_to, r_move_to, move_to: Cart # Section;
+
+	%Breaking of carts
+	r_cart_broken, s_cart_broken, r_cart_fixed, s_cart_fixed, cart_fixed: Cart;
+	cart_broken, cart_fixed: Cart;
+
+	%Breaking of switch
+	s_switch_broken, r_switch_broken;
+
+proc
+	Controller(rm: RefMap, reqs: OutstandingRequests, furBroken: Bool, refBroken: RefBroken) = 
+				(sum c:Cart, r:Refinery . (rm(getRef(r)) == c) -> 
+					(reqs(r) -> s_empty.Controller(rm, reqs[getRef(r)->false], furBroken, refBroken)) +
+					((!reqs(r) && !refBroken(r)) -> 
+						s_request(c,r).Controller(rm, reqs[getRef(r)->true], furBroken, refBroken))) +
+				((!furBroken) -> 
+					s_fill.Controller(rm, reqs, furBroken, refBroken)) +
+				((!furBroken) ->
+					r_furnace_broken.Controller(rm, reqs, true, refBroken)) +
+				(sum r:Refinery . (!refBroken(getRef(r)) ->
+					r_ref_broken(r).Controller(rm, reqs, furBroken, refBroken[getRef(r)->true]));
+	
+	Repair = (sum r:Refinery
