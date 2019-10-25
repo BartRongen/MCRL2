@@ -1,4 +1,6 @@
 <root>
  <spec>System4_spec.mcrl2</spec>
- <properties/>
+ <properties>
+  <property>deadlock</property>
+ </properties>
 </root>
