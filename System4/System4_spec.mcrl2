@@ -1,5 +1,4 @@
 sort Cart = struct c1 | c2 | c3 | c4;
-sort Section = struct 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 sort SwitchState = struct up | middle | down;
 sort Refinery = struct r1 | r2 | r3;
 %Stores the location of the carts: Nat(indicates which cart) -> Nat(position).
@@ -8,10 +7,13 @@ sort LocArray = Nat -> Section;
 sort RefMap = Nat -> Cart;
 %Stores the oustanding requests: Nat(indicates which refinery) -> Bool (false = no request).
 sort OustandingRequests = Nat -> Bool;
-%Stores a boolean for each cart whether it is full
+%Stores a boolean for each cart whether it is full or broken
 sort IsFull = Nat -> Bool;
+sort CartsBroken = Nat -> Bool;
 %Stores the broken states of the refineries
 sort RefBroken = Nat -> Bool;
+
+glob refmap: RefMap;
 
 %Maps the carts to Nat in order to use them in an array (mcrl2 doesn't allow Cart as index).
 map getCart: Cart -> Nat;
@@ -51,11 +53,14 @@ act
 	s_move_to, r_move_to, move_to: Cart # Section;
 
 	%Breaking of carts
-	r_cart_broken, s_cart_broken, r_cart_fixed, s_cart_fixed, cart_fixed: Cart;
+	r_cart_broken, s_cart_broken, r_cart_fixed, s_cart_fixed, cart_fixed, cart_empty_on_spot: Cart;
 	cart_broken, cart_fixed: Cart;
 
 	%Breaking of switch
 	s_switch_broken, r_switch_broken, switch_broken, r_switch_fixed, s_switch_fixed, switch_fixed;
+
+	%Communicating refmap changes
+	r_refmap_changed, s_refmap_changed, refmap_changed: Refinery # Cart;
 
 proc
 	Controller(rm: RefMap, reqs: OutstandingRequests, furBroken: Bool, refBroken: RefBroken) = 
@@ -73,7 +78,7 @@ proc
 				(s_furnace_fixed.Controller(rm, reqs, false, refBroken)) +
 				%Refinery breaking and fixing
 				(sum r:Refinery . (!refBroken(getRef(r)) ->
-					r_ref_broken(r).Controller(rm, reqs, furBroken, refBroken[getRef(r)->true])) +
+					r_ref_broken(r).Controller(rm, reqs, furBroken, refBroken[getRef(r)->true]))) +
 				(sum r:Refinery . s_ref_fixed(r) . Controller(rm, reqs, furBroken, refBroken[getRef(r)->false]));
 				
 	
@@ -82,5 +87,31 @@ proc
 			 (s_furnace_broken . r_furnace_fixed . Repair) +
 			 (s_switch_broken . r_switch_fixed . Repair);
 
-	CartControl(locs:LocArray, rm:RefMap, reqs:OutstandingRequests, full:IsFull, switchstate:SwitchState, 
-			
+	CartControl(locs:LocArray, rm:RefMap, reqs:OutstandingRequests, full:IsFull, swstate:SwitchState, swbroken:Bool, cartsbroken:CartsBroken) =
+				%Cars breaking and possibly changing refinery cart mapping
+				(sum c:Cart . !cartsbroken(getCart(c)) -> r_cart_broken(c) . (full(getCart(c)) -> cart_empty_on_spot(c)) . 
+				(exists r:Refinery . rm(getRef(r)) == c && reqs(getRef(r))) -> 
+					(exists c2:Cart . !cartsbroken(getCart(c2)) && (!exists r2:Refinery . rm(getRef(r2)) == c2)) ->
+						r_refmap_changed(c2, r) . CartControl(locs, rm[getRef(r)->c2], reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
+					<>
+						CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
+				<> 
+					CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])) +
+				%Cart fixing
+				(sum c:Cart . s_cart_fixed(c) . CartControl(locs, rm, reqs, full, swstate, swbroken, cartsbroken[getCart(c)->false])) +
+				%Switch breaking and fixing
+				(!swbroken -> r_switch_broken . CartControl(locs, rm, reqs, full, swstate, true, cartsbroken)) +
+				(s_switch_fixed . CartControl(locs, rm, reqs, full, swstate, false, cartsbroken));
+				%Cart moving
+
+init 
+	allow(
+		{request, furnace_unload, receive_load, broken, repaired, move_to, section_occupied, section_free},
+		comm(
+			{s_request|r_request -> request, 
+			 s_fill|r_fill -> furnace_unload, 
+			 s_empty|r_empty -> receive_load, cartbroken|r_broken -> broken,
+			 s_repair|cartfixed -> repaired},
+		Carts() || ControllerS() || Repair
+	));
+
