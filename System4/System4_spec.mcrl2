@@ -55,19 +55,32 @@ act
 	cart_broken, cart_fixed: Cart;
 
 	%Breaking of switch
-	s_switch_broken, r_switch_broken;
+	s_switch_broken, r_switch_broken, switch_broken, r_switch_fixed, s_switch_fixed, switch_fixed;
 
 proc
 	Controller(rm: RefMap, reqs: OutstandingRequests, furBroken: Bool, refBroken: RefBroken) = 
+				%Receive requests or empty carts (to finish requests)
 				(sum c:Cart, r:Refinery . (rm(getRef(r)) == c) -> 
 					(reqs(r) -> s_empty.Controller(rm, reqs[getRef(r)->false], furBroken, refBroken)) +
 					((!reqs(r) && !refBroken(r)) -> 
-						s_request(c,r).Controller(rm, reqs[getRef(r)->true], furBroken, refBroken))) +
+						r_request(c,r).Controller(rm, reqs[getRef(r)->true], furBroken, refBroken))) +
+				%Fill carts with iron
 				((!furBroken) -> 
 					s_fill.Controller(rm, reqs, furBroken, refBroken)) +
+				%Furnace breaking and fixing
 				((!furBroken) ->
 					r_furnace_broken.Controller(rm, reqs, true, refBroken)) +
+				(s_furnace_fixed.Controller(rm, reqs, false, refBroken)) +
+				%Refinery breaking and fixing
 				(sum r:Refinery . (!refBroken(getRef(r)) ->
-					r_ref_broken(r).Controller(rm, reqs, furBroken, refBroken[getRef(r)->true]));
+					r_ref_broken(r).Controller(rm, reqs, furBroken, refBroken[getRef(r)->true])) +
+				(sum r:Refinery . s_ref_fixed(r) . Controller(rm, reqs, furBroken, refBroken[getRef(r)->false]));
+				
 	
-	Repair = (sum r:Refinery
+	Repair = (sum r:Refinery . s_ref_broken(r) . r_ref_fixed(r) . Repair) + 
+			 (sum c:Cart . s_cart_broken(c) . r_cart_fixed(c) . Repair) +
+			 (s_furnace_broken . r_furnace_fixed . Repair) +
+			 (s_switch_broken . r_switch_fixed . Repair);
+
+	CartControl(locs:LocArray, rm:RefMap, reqs:OutstandingRequests, full:IsFull, switchstate:SwitchState, 
+			
