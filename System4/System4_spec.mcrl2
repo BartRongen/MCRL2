@@ -72,8 +72,8 @@ eqn
 map fullInit: Nat -> Bool;
 eqn
 	fullInit(1) = false;
-	fullInit(2) = false;
-	fullInit(3) = false;
+	fullInit(2) = true;
+	fullInit(3) = true;
 	fullInit(4) = false;
 
 map cartbrokenInit: Nat -> Bool;
@@ -142,14 +142,15 @@ proc
 
 	CartControl(locs:LocArray, rm:RefMap, reqs:OutstandingRequests, full:IsFull, swstate:SwitchState, swbroken:Bool, cartsbroken:CartsBroken) =
 				%Cars breaking and possibly changing refinery cart mapping
-				(sum c:Cart . ( !cartsbroken(getCart(c)) -> r_cart_broken(c) ) . ( full(getCart(c)) -> cart_empty_on_spot(c) ) . 
-				(sum r:Refinery . ( rm(getRef(r)) == c && reqs(getRef(r)) ) ->
-					(sum d:Cart, s:Refinery . ( !cartsbroken(getCart(d)) && rm(getRef(s)) != d && c != d ) ->
-						r_refmap_changed(r, d) . CartControl(locs, rm[getRef(r)->d], reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
+				(sum c:Cart . ( !cartsbroken(getCart(c)) -> 
+					(r_cart_broken(c) . ( full(getCart(c)) -> cart_empty_on_spot(c) ) .
+					(sum r:Refinery . ( rm(getRef(r)) == c && reqs(getRef(r)) ) ->
+						(sum d:Cart . ( !cartsbroken(getCart(d)) && !(rm(getRef(r1)) == d || rm(getRef(r2)) == d || rm(getRef(r3)) == d) && c != d ) ->
+							r_refmap_changed(r, d) . CartControl(locs, rm[getRef(r)->d], reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
+						<>
+							CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true]))
 					<>
-						CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true]))
-				<>
-					CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true]))) + 
+						(rm(getRef(r)) == c) -> CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true]))))) + 
 
 				%(exists r:Refinery . rm(getRef(r)) == c && reqs(getRef(r))) -> 
 				%	(exists d:Cart . !cartsbroken(getCart(d)) && (!exists s:Refinery . rm(getRef(s)) == d)) ->
