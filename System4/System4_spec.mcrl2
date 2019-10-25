@@ -72,8 +72,8 @@ eqn
 map fullInit: Nat -> Bool;
 eqn
 	fullInit(1) = false;
-	fullInit(2) = true;
-	fullInit(3) = true;
+	fullInit(2) = false;
+	fullInit(3) = false;
 	fullInit(4) = false;
 
 map cartbrokenInit: Nat -> Bool;
@@ -132,7 +132,8 @@ proc
 				%Refinery breaking and fixing
 				(sum r:Refinery . (!refBroken(getRef(r)) ->
 					r_ref_broken(r).IronController(rm, reqs, furBroken, refBroken[getRef(r)->true]))) +
-				(sum r:Refinery . s_ref_fixed(r) . IronController(rm, reqs, furBroken, refBroken[getRef(r)->false]));
+				(sum r:Refinery . s_ref_fixed(r) . IronController(rm, reqs, furBroken, refBroken[getRef(r)->false])) + 
+				(sum c:Cart, r:Refinery . s_refmap_changed(r,c) . IronController(rm[getRef(r) -> c], reqs, furBroken, refBroken));
 				
 	
 	Repair = (sum r:Refinery . s_ref_broken(r) . r_ref_fixed(r) . Repair) + 
@@ -143,14 +144,17 @@ proc
 	CartControl(locs:LocArray, rm:RefMap, reqs:OutstandingRequests, full:IsFull, swstate:SwitchState, swbroken:Bool, cartsbroken:CartsBroken) =
 				%Cars breaking and possibly changing refinery cart mapping
 				(sum c:Cart . ( !cartsbroken(getCart(c)) -> 
-					(r_cart_broken(c) . ( full(getCart(c)) -> cart_empty_on_spot(c) ) .
-					(sum r:Refinery . ( rm(getRef(r)) == c && reqs(getRef(r)) ) ->
-						(sum d:Cart . ( !cartsbroken(getCart(d)) && !(rm(getRef(r1)) == d || rm(getRef(r2)) == d || rm(getRef(r3)) == d) && c != d ) ->
+					(r_cart_broken(c) . ( full(getCart(c)) -> cart_empty_on_spot(c) <> tau ) .
+					(exists s:Refinery . rm(getRef(s)) == c) -> (sum r:Refinery . ( rm(getRef(r)) == c && reqs(getRef(r)) ) ->
+						(exists d: Cart . ( !cartsbroken(getCart(d)) && !(rm(getRef(r1)) == d || rm(getRef(r2)) == d || rm(getRef(r3)) == d) && c != d )) -> (
+						((sum d:Cart . ( !cartsbroken(getCart(d)) && !(rm(getRef(r1)) == d || rm(getRef(r2)) == d || rm(getRef(r3)) == d) && c != d ) ->
 							r_refmap_changed(r, d) . CartControl(locs, rm[getRef(r)->d], reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
-						<>
-							CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true]))
+						))) <>
+							CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
 					<>
-						(rm(getRef(r)) == c) -> CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true]))))) + 
+						(rm(getRef(r)) == c ) -> CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true]))
+					<>
+						CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])))) + 
 
 				%(exists r:Refinery . rm(getRef(r)) == c && reqs(getRef(r))) -> 
 				%	(exists d:Cart . !cartsbroken(getCart(d)) && (!exists s:Refinery . rm(getRef(s)) == d)) ->
