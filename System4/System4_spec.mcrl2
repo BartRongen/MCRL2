@@ -91,7 +91,7 @@ eqn
 
 act
 	%Requests between controller and cartcontroller
-	s_request, r_request, request: Cart # Refinery;
+	s_request, r_request, request_load: Cart # Refinery;
 	s_empty, r_empty, receive_load: Cart # Refinery;
 	
 	%Furnace unloading
@@ -102,6 +102,8 @@ act
 	
 	%Breaking of refinery
 	r_ref_broken, s_ref_broken, refinery_broken, r_ref_fixed, s_ref_fixed, refinery_fixed: Refinery;
+
+	%Moving carts
 	s_move_to, r_move_to, move_to: Cart # Section;
 
 	%Breaking of carts
@@ -111,7 +113,7 @@ act
 	s_switch_broken, r_switch_broken, switch_broken, r_switch_fixed, s_switch_fixed, switch_fixed;
 
 	%Communicating refmap changes
-	r_refmap_changed, s_refmap_changed, refmap_changed: Refinery # Cart;
+	r_refmap_changed, s_refmap_changed, cart_reassigned: Refinery # Cart;
 
 proc
 	IronController(rm: RefMap, reqs: OutstandingRequests, furBroken: Bool, refBroken: RefBroken) = 
@@ -142,8 +144,8 @@ proc
 				%Cars breaking and possibly changing refinery cart mapping
 				(sum c:Cart . ( !cartsbroken(getCart(c)) -> r_cart_broken(c) ) . ( full(getCart(c)) -> cart_empty_on_spot(c) ) . 
 				(sum r:Refinery . ( rm(getRef(r)) == c && reqs(getRef(r)) ) ->
-					(sum d:Cart, s:Refinery . ( !cartsbroken(getCart(d)) && !rm(getRef(s)) == d && c != d ) ->
-						r_refmap_changed(d, r) . CartControl(locs, rm[getRef(r)->d], reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
+					(sum d:Cart, s:Refinery . ( !cartsbroken(getCart(d)) && rm(getRef(s)) != d && c != d ) ->
+						r_refmap_changed(r, d) . CartControl(locs, rm[getRef(r)->d], reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
 					<>
 						CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true]))
 				<>
@@ -166,12 +168,21 @@ proc
 
 init 
 	allow(
-		{request, furnace_unload, receive_load, broken, repaired, move_to, section_occupied, section_free},
+		{request_load, receive_load, furnace_unload, furnace_broken, furnace_fixed, refinery_broken, refinery_fixed, move_to, cart_broken, cart_fixed, cart_empty_on_spot, switch_broken, switch_fixed, cart_reassigned},
 		comm(
-			{s_request|r_request -> request, 
-			 s_fill|r_fill -> furnace_unload, 
-			 s_empty|r_empty -> receive_load, cartbroken|r_broken -> broken,
-			 s_repair|cartfixed -> repaired},
-		CartControl(locsInit, refInit, reqsInit, fullInit, middle, false, cartbrokenInit) || IronController(refInit, reqsInit, false, refbrokenInit) || Repair
+			{r_request|s_request -> request_load,
+			 r_empty|s_empty -> receive_load,
+			 r_fill|s_fill -> furnace_unload,
+			 r_furnace_broken|s_furnace_broken -> furnace_broken,
+			 r_furnace_fixed|s_furnace_fixed -> furnace_fixed,
+			 r_ref_broken|s_ref_broken -> refinery_broken,
+			 r_ref_fixed|s_ref_fixed -> refinery_fixed,
+			 r_move_to|s_move_to -> move_to,
+			 r_cart_broken|s_cart_broken -> cart_broken,
+			 r_cart_fixed|s_cart_fixed -> cart_fixed,
+			 r_switch_broken|s_switch_broken -> switch_broken,
+			 r_switch_fixed|s_switch_fixed -> switch_fixed,
+			 r_refmap_changed|s_refmap_changed -> cart_reassigned},
+		CartControl(locInit, refInit, reqsInit, fullInit, middle, false, cartbrokenInit) || IronController(refInit, reqsInit, false, refbrokenInit) || Repair
 	));
 
