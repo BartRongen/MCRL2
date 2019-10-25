@@ -140,14 +140,23 @@ proc
 
 	CartControl(locs:LocArray, rm:RefMap, reqs:OutstandingRequests, full:IsFull, swstate:SwitchState, swbroken:Bool, cartsbroken:CartsBroken) =
 				%Cars breaking and possibly changing refinery cart mapping
-				(sum c:Cart . !cartsbroken(getCart(c)) -> r_cart_broken(c) . (full(getCart(c)) -> cart_empty_on_spot(c)) . 
-				(exists r:Refinery . rm(getRef(r)) == c && reqs(getRef(r))) -> 
-					(exists d:Cart . !cartsbroken(getCart(d)) && (!exists s:Refinery . rm(getRef(s)) == d)) ->
+				(sum c:Cart . ( !cartsbroken(getCart(c)) -> r_cart_broken(c) ) . ( full(getCart(c)) -> cart_empty_on_spot(c) ) . 
+				(sum r:Refinery . ( rm(getRef(r)) == c && reqs(getRef(r)) ) ->
+					(sum d:Cart, s:Refinery . ( !cartsbroken(getCart(d)) && !rm(getRef(s)) == d && c != d ) ->
 						r_refmap_changed(d, r) . CartControl(locs, rm[getRef(r)->d], reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
 					<>
-						CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
-				<> 
-					CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])) +
+						CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true]))
+				<>
+					CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true]))) + 
+
+				%(exists r:Refinery . rm(getRef(r)) == c && reqs(getRef(r))) -> 
+				%	(exists d:Cart . !cartsbroken(getCart(d)) && (!exists s:Refinery . rm(getRef(s)) == d)) ->
+				%		r_refmap_changed(d, r) . CartControl(locs, rm[getRef(r)->d], reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
+				%	<>
+				%		CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
+				%<> 
+				%	CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])) +
+
 				%Cart fixing
 				(sum c:Cart . s_cart_fixed(c) . CartControl(locs, rm, reqs, full, swstate, swbroken, cartsbroken[getCart(c)->false])) +
 				%Switch breaking and fixing
