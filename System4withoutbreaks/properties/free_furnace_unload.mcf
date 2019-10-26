@@ -1,0 +1,1 @@
+[true*][section_occupied(s2).(!furnace_unload*).section_free(s2).(!section_occupied(s2)*).furnace_unload]false

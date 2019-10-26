@@ -120,7 +120,7 @@ act
 	s_empty, r_empty, receive_load: Cart # Refinery;
 	
 	%Furnace unloading
-	s_fill, r_fill, furnace_unload; 
+	s_fill, r_fill, s_filled, r_filled, furnace_unload, furnace_unloaded; 
 
 	%Breaking of furnace
 	r_furnace_broken, s_furnace_broken, furnace_broken, r_furnace_fixed, s_furnace_fixed, furnace_fixed;
@@ -155,7 +155,7 @@ proc
 						r_request(c,r).IronController(rm, reqs[getRef(r)->true], furBroken, refBroken)) +
 				%Fill carts with iron
 				((!furBroken) -> 
-					s_fill.IronController(rm, reqs, furBroken, refBroken)) +
+					s_fill . r_filled . IronController(rm, reqs, furBroken, refBroken)) +
 				%Furnace breaking and fixing
 				((!furBroken) ->
 					r_furnace_broken.IronController(rm, reqs, true, refBroken)) +
@@ -228,7 +228,7 @@ proc
 								)
 							<>
 								( (locs(getCart(c)) == 2) ->
-									r_fill . CartControl(locs, rm, reqs, full[getCart(c)->true], swstate, swbroken, cartsbroken)
+									r_fill . s_filled . CartControl(locs, rm, reqs, full[getCart(c)->true], swstate, swbroken, cartsbroken)
 								)
 							)
 						)
@@ -237,11 +237,12 @@ proc
 
 init 
 	allow(
-		{request_load, receive_load, furnace_unload, change_switch_state, move_to, section_free, section_occupied},
+		{request_load, receive_load, furnace_unload, change_switch_state, move_to, section_free, section_occupied, furnace_unloaded},
 		comm(
 			{r_request|s_request -> request_load,
 			 r_empty|s_empty -> receive_load,
 			 r_fill|s_fill -> furnace_unload,
+			 r_filled|s_filled -> furnace_unloaded,
 			 r_furnace_broken|s_furnace_broken -> furnace_broken,
 			 r_furnace_fixed|s_furnace_fixed -> furnace_fixed,
 			 r_ref_broken|s_ref_broken -> refinery_broken,
