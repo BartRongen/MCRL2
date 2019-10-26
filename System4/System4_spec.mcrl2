@@ -169,10 +169,13 @@ proc
 				(sum c:Cart, s:Section . s_move_to(c, s) . IronController(rm, reqs, furBroken, refBroken));
 				
 	
-	Repair = (sum r:Refinery . s_ref_broken(r) . r_ref_fixed(r) . Repair) + 
-			 (sum c:Cart . s_cart_broken(c) . r_cart_fixed(c) . Repair) +
-			 (s_furnace_broken . r_furnace_fixed . Repair) +
-			 (s_switch_broken . r_switch_fixed . Repair);
+	Repair(refBroken:RefBroken, furBroken:Bool, cartsBroken:CartsBroken) = 
+				(sum r:Refinery . (!refBroken(getRef(r)) -> s_ref_broken(r) . Repair(refBroken[getRef(r)->true], furBroken, cartsBroken))) +
+				(sum c:Cart . (!cartsBroken(getCart(c)) -> s_cart_broken(c) . Repair(refBroken, furBroken, cartsBroken[getCart(c)->true]))) +
+				((!furBroken -> s_furnace_broken . Repair(refBroken, true, cartsBroken))) +
+				(sum r:Refinery . (refBroken(getRef(r)) -> r_ref_fixed(r) . Repair(refBroken[getRef(r)->false], furBroken, cartsBroken))) +
+				(sum c:Cart . (cartsBroken(getCart(c)) -> r_cart_fixed(c) . Repair(refBroken, furBroken, cartsBroken[getCart(c)->false]))) +
+				((furBroken -> r_furnace_fixed . Repair(refBroken, false, cartsBroken)));
 
 	CartControl(locs:LocArray, rm:RefMap, reqs:OutstandingRequests, full:IsFull, swstate:SwitchState, swbroken:Bool, cartsbroken:CartsBroken) =
 				%Cars breaking and possibly changing refinery cart mapping
@@ -267,6 +270,6 @@ init
 			 r_switch_broken|s_switch_broken -> switch_broken,
 			 r_switch_fixed|s_switch_fixed -> switch_fixed,
 			 r_refmap_changed|s_refmap_changed -> cart_reassigned},
-		CartControl(locInit, refInit, reqsInit, fullInit, middle, false, cartbrokenInit) || IronController(refInit, reqsInit, false, refbrokenInit) || Repair
+		CartControl(locInit, refInit, reqsInit, fullInit, middle, false, cartbrokenInit) || IronController(refInit, reqsInit, false, refbrokenInit) || Repair(refbrokenInit, false, cartbrokenInit)
 	));
 
