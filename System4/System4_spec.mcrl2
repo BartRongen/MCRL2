@@ -129,7 +129,7 @@ act
 	r_ref_broken, s_ref_broken, refinery_broken, r_ref_fixed, s_ref_fixed, refinery_fixed: Refinery;
 
 	%Moving carts
-	s_move_to, r_move_to, move_to: Cart # Section;
+	s_move_to, r_move_to, cart_move: Cart # Section;
 
 	%Breaking of carts
 	r_cart_broken, s_cart_broken, cart_broken, r_cart_fixed, s_cart_fixed, cart_fixed, cart_empty_on_spot: Cart;
@@ -255,7 +255,7 @@ proc
 
 init 
 	allow(
-		{request_load, receive_load, furnace_unload, furnace_broken, furnace_fixed, refinery_broken, refinery_fixed, cart_broken, cart_fixed, cart_empty_on_spot, switch_broken, switch_fixed, cart_reassigned, switch_changed, move_to, section_free, section_occupied},
+		{request_load, receive_load, furnace_unload, furnace_broken, furnace_fixed, refinery_broken, refinery_fixed, cart_broken, cart_fixed, cart_empty_on_spot, switch_broken, switch_fixed, cart_reassigned, switch_changed, cart_move, section_free, section_occupied},
 		comm(
 			{r_request|s_request -> request_load,
 			 r_empty|s_empty -> receive_load,
@@ -265,7 +265,7 @@ init
 			 r_furnace_fixed|s_furnace_fixed -> furnace_fixed,
 			 r_ref_broken|s_ref_broken -> refinery_broken,
 			 r_ref_fixed|s_ref_fixed -> refinery_fixed,
-			 r_move_to|s_move_to -> move_to,
+			 r_move_to|s_move_to -> cart_move,
 			 r_cart_broken|s_cart_broken -> cart_broken,
 			 r_cart_fixed|s_cart_fixed -> cart_fixed,
 			 r_switch_broken|s_switch_broken -> switch_broken,
