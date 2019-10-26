@@ -212,15 +212,15 @@ proc
 							( r_empty(c, r) . CartControl(locs, rm, reqs[getRef(r)->false], full[getCart(c)->false], swstate, swbroken, cartsbroken) ) 
 						<>
 							( (locs(getCart(c)) == 2) -> 
-								( (swstate != getRefSwitch(r)) -> 
+								( ((swstate != getRefSwitch(r)) && !swbroken) -> 
 									change_switch_state(getRefSwitch(r)) . CartControl(locs, rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken) 
 								<> 
-									( !(exists d:Cart . locs(getCart(d)) == 3) ->
+									( (!(exists d:Cart . locs(getCart(d)) == 3) && !swbroken) ->
 										section_free(s3) . r_move_to(c, s3) . section_occupied(s3) . CartControl(locs[getCart(c)->3], rm, reqs, full, swstate, swbroken, cartsbroken)
 									)
 								)
 							<>
-								( (locs(getCart(c)) == 3) ->
+								( ((locs(getCart(c)) == 3) && !swbroken) ->
 									( !(exists d:Cart . locs(getCart(d)) == getRefLoc(r)) ->
 										section_free(getSecByNat(getRefLoc(r))) . r_move_to(c, getRefSec(r)) . section_occupied(getSecByNat(getRefLoc(r))) . CartControl(locs[getCart(c)->getRefLoc(r)], rm, reqs, full, swstate, swbroken, cartsbroken)
 									)
@@ -238,7 +238,7 @@ proc
 							)
 						<>
 							( (locs(getCart(c)) == 3) -> 
-								( !(exists d:Cart . locs(getCart(d)) == 2) ->
+								( (!(exists d:Cart . locs(getCart(d)) == 2) && !swbroken) ->
 									section_free(s2) . r_move_to(c, s2) . section_occupied(s2) . CartControl(locs[getCart(c)->2], rm, reqs, full, swstate, swbroken, cartsbroken)
 								)
 							<>
