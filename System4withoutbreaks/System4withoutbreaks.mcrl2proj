@@ -3,5 +3,6 @@
  <properties>
   <property>free_furnace_unload</property>
   <property>cart_still_while_unloading</property>
+  <property>1d</property>
  </properties>
 </root>
