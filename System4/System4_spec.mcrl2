@@ -138,7 +138,7 @@ act
 	s_switch_broken, r_switch_broken, switch_broken, r_switch_fixed, s_switch_fixed, switch_fixed;
 
 	%Switch changes
-	change_switch_state: SwitchState;
+	switch_changed: SwitchState;
 
 	%Section occupied or free
 	section_occupied, section_free: Section;
@@ -216,7 +216,7 @@ proc
 						<>
 							( (locs(getCart(c)) == 2) -> 
 								( ((swstate != getRefSwitch(r)) && !swbroken) -> 
-									change_switch_state(getRefSwitch(r)) . CartControl(locs, rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken) 
+									switch_changed(getRefSwitch(r)) . CartControl(locs, rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken) 
 								<> 
 									( (!(exists d:Cart . locs(getCart(d)) == 3) && !swbroken) ->
 										section_free(s3) . r_move_to(c, s3) . section_occupied(s3) . CartControl(locs[getCart(c)->3], rm, reqs, full, swstate, swbroken, cartsbroken)
@@ -234,7 +234,7 @@ proc
 						( (locs(getCart(c)) == getRefLoc(r)) ->
 							( (!swbroken && !(exists d:Cart . locs(getCart(d)) == 3 || locs(getCart(d)) == 2)) ->
 								( (swstate != getRefSwitch(r)) -> 
-									change_switch_state(getRefSwitch(r)) . section_free(s3) . r_move_to(c, s3) . section_occupied(s3) . CartControl(locs[getCart(c)->3], rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken) 
+									switch_changed(getRefSwitch(r)) . section_free(s3) . r_move_to(c, s3) . section_occupied(s3) . CartControl(locs[getCart(c)->3], rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken) 
 								<>
 									section_free(s3) . r_move_to(c, s3) . section_occupied(s3) . CartControl(locs[getCart(c)->3], rm, reqs, full, swstate, swbroken, cartsbroken)
 								)
@@ -255,7 +255,7 @@ proc
 
 init 
 	allow(
-		{request_load, receive_load, furnace_unload, furnace_broken, furnace_fixed, refinery_broken, refinery_fixed, cart_broken, cart_fixed, cart_empty_on_spot, switch_broken, switch_fixed, cart_reassigned, change_switch_state, move_to, section_free, section_occupied},
+		{request_load, receive_load, furnace_unload, furnace_broken, furnace_fixed, refinery_broken, refinery_fixed, cart_broken, cart_fixed, cart_empty_on_spot, switch_broken, switch_fixed, cart_reassigned, switch_changed, move_to, section_free, section_occupied},
 		comm(
 			{r_request|s_request -> request_load,
 			 r_empty|s_empty -> receive_load,
