@@ -16,7 +16,7 @@ sort RefBroken = Nat -> Bool;
 
 glob refmap: RefMap;
 
-%Maps the carts to Nat in order to use them in an array (mcrl2 doesn't allow Cart as index).
+%Maps the carts to Nat in order to use them in an array (mcrl2 doesn't allow C[art as index).
 map getCart: Cart -> Nat;
 eqn
 	getCart(c1) = 1;

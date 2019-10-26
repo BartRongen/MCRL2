@@ -2,7 +2,7 @@
  <spec>System4withoutbreaks_spec.mcrl2</spec>
  <properties>
   <property>free_furnace_unload</property>
-  <property>cart_still_while_unloading</property>
+  <property>1c</property>
   <property>1d</property>
  </properties>
 </root>
