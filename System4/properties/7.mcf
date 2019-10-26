@@ -1,0 +1,1 @@
+[true*]<section_occupied(s3)>[!section_free(s3)*]forall sw:SwitchState. <switch_changed(sw)>false

@@ -1,0 +1,1 @@
+[true*]<request_load(c1,r1)>[!receive_load(c1,r1)*]<request_load(c1,r1)>true

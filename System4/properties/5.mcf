@@ -1,0 +1,1 @@
+[true*]forall r:Refinery. <refinery_broken(r)>[!refinery_fixed(r)*]<refinery_fixed(r)>true
