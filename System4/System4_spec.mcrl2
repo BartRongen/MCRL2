@@ -45,6 +45,13 @@ eqn
 	getRef(r2) = 2;
 	getRef(r3) = 3;
 
+%Maps the refineries to their respective repair platforms
+map getRefRep: Refinery -> Section;
+eqn
+	getRefRep(r1) = s5;
+	getRefRep(r2) = s7;
+	getRefRep(r3) = s9;
+	
 map getSection: Section -> Nat;
 eqn
 	getSection(s1) = 1;
@@ -80,7 +87,7 @@ eqn
 	locInit(1) = 4;
 	locInit(2) = 6;
 	locInit(3) = 8;
-	locInit(4) = 0;
+	locInit(4) = 1;
 
 map refInit: Nat -> Cart;
 eqn
@@ -132,7 +139,7 @@ act
 	s_move_to, r_move_to, cart_move: Cart # Section;
 
 	%Breaking of carts
-	r_cart_broken, s_cart_broken, cart_broken, r_cart_fixed, s_cart_fixed, cart_fixed, cart_empty_on_spot: Cart;
+	r_cart_broken, s_cart_broken, cart_broken, r_cart_fixed, s_cart_fixed, cart_fixed, cart_empty_on_spot, r_cart_fixed_on_spot, s_cart_fixed_on_spot, cart_fixed_on_spot: Cart;
 
 	%Breaking of switch
 	s_switch_broken, r_switch_broken, switch_broken, r_switch_fixed, s_switch_fixed, switch_fixed;
@@ -147,26 +154,28 @@ act
 	r_refmap_changed, s_refmap_changed, cart_reassigned: Refinery # Cart;
 
 proc
-	IronController(rm: RefMap, reqs: OutstandingRequests, furBroken: Bool, refBroken: RefBroken) = 
+	IronController(rm: RefMap, reqs: OutstandingRequests, furBroken: Bool, refBroken: RefBroken, furFilling: Bool) = 
 				%Receive requests or empty carts (to finish requests)
 				(sum c:Cart, r:Refinery . (rm(getRef(r)) == c) -> 
-					(reqs(getRef(r)) -> s_empty(c,r).IronController(rm, reqs[getRef(r)->false], furBroken, refBroken))) +
+					(reqs(getRef(r)) -> s_empty(c,r).IronController(rm, reqs[getRef(r)->false], furBroken, refBroken, furFilling))) +
 				(sum c:Cart, r:Refinery . ((rm(getRef(r)) == c) && !reqs(getRef(r)) && !refBroken(getRef(r))) -> 
-						r_request(c,r).IronController(rm, reqs[getRef(r)->true], furBroken, refBroken)) +
+						r_request(c,r).IronController(rm, reqs[getRef(r)->true], furBroken, refBroken, furFilling)) +
 				%Fill carts with iron
-				((!furBroken) -> 
-					s_fill . r_filled . IronController(rm, reqs, furBroken, refBroken)) +
+				((!furBroken && !furFilling) -> 
+					s_fill . IronController(rm, reqs, furBroken, refBroken, true)) +
+				((!furBroken && furFilling) -> 
+					r_filled . IronController(rm, reqs, furBroken, refBroken, false)) +
 				%Furnace breaking and fixing
 				((!furBroken) ->
-					r_furnace_broken.IronController(rm, reqs, true, refBroken)) +
-				(s_furnace_fixed.IronController(rm, reqs, false, refBroken)) +
+					r_furnace_broken.IronController(rm, reqs, true, refBroken, furFilling)) +
+				(s_furnace_fixed.IronController(rm, reqs, false, refBroken, furFilling)) +
 				%Refinery breaking and fixing
 				(sum r:Refinery . (!refBroken(getRef(r)) ->
-					r_ref_broken(r).IronController(rm, reqs, furBroken, refBroken[getRef(r)->true]))) +
-				(sum r:Refinery . s_ref_fixed(r) . IronController(rm, reqs, furBroken, refBroken[getRef(r)->false])) + 
-				(sum c:Cart, r:Refinery . s_refmap_changed(r,c) . IronController(rm[getRef(r) -> c], reqs, furBroken, refBroken)) +
+					r_ref_broken(r).IronController(rm, reqs, furBroken, refBroken[getRef(r)->true], furFilling))) +
+				(sum r:Refinery . s_ref_fixed(r) . IronController(rm, reqs, furBroken, refBroken[getRef(r)->false], furFilling)) + 
+				(sum c:Cart, r:Refinery . s_refmap_changed(r,c) . IronController(rm[getRef(r) -> c], reqs, furBroken, refBroken, furFilling)) +
 				%Cart moving
-				(sum c:Cart, s:Section . s_move_to(c, s) . IronController(rm, reqs, furBroken, refBroken));
+				(sum c:Cart, s:Section . s_move_to(c, s) . IronController(rm, reqs, furBroken, refBroken, furFilling));
 				
 	
 	Repair(refBroken:RefBroken, furBroken:Bool, cartsBroken:CartsBroken) = 
@@ -174,79 +183,137 @@ proc
 				(sum c:Cart . (!cartsBroken(getCart(c)) -> s_cart_broken(c) . Repair(refBroken, furBroken, cartsBroken[getCart(c)->true]))) +
 				((!furBroken -> s_furnace_broken . Repair(refBroken, true, cartsBroken))) +
 				(sum r:Refinery . (refBroken(getRef(r)) -> r_ref_fixed(r) . Repair(refBroken[getRef(r)->false], furBroken, cartsBroken))) +
-				(sum c:Cart . (cartsBroken(getCart(c)) -> r_cart_fixed(c) . Repair(refBroken, furBroken, cartsBroken[getCart(c)->false]))) +
-				((furBroken -> r_furnace_fixed . Repair(refBroken, false, cartsBroken)));
+				(sum c:Cart . (cartsBroken(getCart(c)) -> s_cart_fixed(c) . Repair(refBroken, furBroken, cartsBroken[getCart(c)->false]))) +
+				((furBroken -> r_furnace_fixed . Repair(refBroken, false, cartsBroken))) +
+				(sum c:Cart . (cartsBroken(getCart(c)) -> s_cart_fixed_on_spot(c) . Repair(refBroken, furBroken, cartsBroken[getCart(c)->false])));
 
-	CartControl(locs:LocArray, rm:RefMap, reqs:OutstandingRequests, full:IsFull, swstate:SwitchState, swbroken:Bool, cartsbroken:CartsBroken) =
-				%Cars breaking and possibly changing refinery cart mapping
-				(sum c:Cart . ( !cartsbroken(getCart(c)) -> 
-					(r_cart_broken(c) . ( full(getCart(c)) -> cart_empty_on_spot(c) <> tau ) .
-					(exists s:Refinery . rm(getRef(s)) == c) -> (sum r:Refinery . ( rm(getRef(r)) == c && reqs(getRef(r)) ) ->
-						(exists d: Cart . ( !cartsbroken(getCart(d)) && !(rm(getRef(r1)) == d || rm(getRef(r2)) == d || rm(getRef(r3)) == d) && c != d )) -> (
-						((sum d:Cart . ( !cartsbroken(getCart(d)) && !(rm(getRef(r1)) == d || rm(getRef(r2)) == d || rm(getRef(r3)) == d) && c != d ) ->
-							r_refmap_changed(r, d) . CartControl(locs, rm[getRef(r)->d], reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
-						))) <>
-							CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
+	CartControl(locs:LocArray, rm:RefMap, reqs:OutstandingRequests, full:IsFull, swstate:SwitchState, swbroken:Bool, cartsbroken:CartsBroken, backup:Bool, backupcart:Cart) =
+
+				%Carts breaking
+				(sum c:Cart . ((!cartsbroken(getCart(c)) && !(locs(getCart(c)) == 1 || locs(getCart(c)) == 5 || locs(getCart(c)) == 7 || locs(getCart(c)) == 9)) ->
+					( (exists d:Cart . (d != c) && cartsbroken(getCart(d))) ->
+						(r_cart_broken(c) . r_cart_fixed_on_spot(c) . CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken, backup, backupcart))
 					<>
-						(rm(getRef(r)) == c ) -> CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true]))
-					<>
-						CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])))) + 
+						(r_cart_broken(c) . CartControl(locs, rm, reqs, full, swstate, swbroken, cartsbroken[getCart(c)->true], backup, backupcart))
+					)
+				)) +
 
-				%(exists r:Refinery . rm(getRef(r)) == c && reqs(getRef(r))) -> 
-				%	(exists d:Cart . !cartsbroken(getCart(d)) && (!exists s:Refinery . rm(getRef(s)) == d)) ->
-				%		r_refmap_changed(d, r) . CartControl(locs, rm[getRef(r)->d], reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
-				%	<>
-				%		CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])
-				%<> 
-				%	CartControl(locs, rm, reqs, full[getCart(c)->false], swstate, swbroken, cartsbroken[getCart(c)->true])) +
+				%Moving backup cart
+				( (locs(getCart(backupcart)) == 3) ->
+					( (!exists c:Cart . locs(getCart(c)) == 2) ->
+						r_move_to(backupcart, s2) . section_occupied(s2) . section_free(s3) . CartControl(locs[getCart(backupcart)->2], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
+					)
+				) +
+				( (locs(getCart(backupcart)) == 2) ->
+					( (!exists c:Cart . locs(getCart(c)) == 1) ->
+						r_move_to(backupcart, s1) . section_occupied(s1) . section_free(s2) . CartControl(locs[getCart(backupcart)->1], rm, reqs, full, swstate, swbroken, cartsbroken, false, backupcart)
+					)
+				) +
+				(sum r:Refinery . (locs(getCart(backupcart)) == getRefLoc(r)) -> 
+					( ((swstate != getRefSwitch(r)) && !swbroken) -> 
+						switch_changed(getRefSwitch(r)) . CartControl(locs, rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken, backup, backupcart) 
+					<> 
+						( (!(exists c:Cart . locs(getCart(c)) == 3) && !swbroken) ->
+							r_move_to(backupcart, s3) . section_occupied(s3) . section_free(getRefSec(r)) . CartControl(locs[getCart(backupcart)->3], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
+						)
+					)
+				) +
 
-				%Cart fixing
-				(sum c:Cart . s_cart_fixed(c) . CartControl(locs, rm, reqs, full, swstate, swbroken, cartsbroken[getCart(c)->false])) +
+				%Moving broken carts
+				(sum c:Cart, r:Refinery . (cartsbroken(getCart(c)) && locs(getCart(c)) == 2 && (c != backupcart) && rm(getRef(r)) == c) ->
+					( ((swstate != getRefSwitch(r)) && !swbroken) -> 
+						switch_changed(getRefSwitch(r)) . CartControl(locs, rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken, backup, backupcart) 
+					<> 
+						( (!(exists d:Cart . locs(getCart(d)) == 3) && !swbroken) ->
+							r_move_to(c, s3) . section_occupied(s3) . section_free(s2) . CartControl(locs[getCart(c)->3], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
+						)
+					)
+				) +
+				(sum c:Cart, r:Refinery . (cartsbroken(getCart(c)) && locs(getCart(c)) == 3 && (c != backupcart) && rm(getRef(r)) == c) ->
+					( (!exists d:Cart . locs(getCart(d)) == getRefLoc(r)) ->
+						r_move_to(c, getRefSec(r)) . section_occupied(getRefSec(r)) . section_free(s3) . CartControl(locs[getCart(c)->getRefLoc(r)], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
+					)
+				) +
+				(sum c:Cart, r:Refinery . (cartsbroken(getCart(c)) && (locs(getCart(c)) == getRefLoc(r)) && (c != backupcart) && rm(getRef(r)) == c) ->
+					( (!exists d:Cart . locs(getCart(d)) == getSection(getRefRep(r))) ->
+						( (!backup) ->
+							r_move_to(c, getRefRep(r)) . section_occupied(getRefRep(r)) . section_free(getRefSec(r)) . r_refmap_changed(r, backupcart) . CartControl(locs[getCart(c)->getSection(getRefRep(r))], rm[getRef(r)->backupcart], reqs, full, swstate, swbroken, cartsbroken, true, c)
+						<>
+							r_move_to(c, getRefRep(r)) . section_occupied(getRefRep(r)) . section_free(getRefSec(r)) . CartControl(locs[getCart(c)->getSection(getRefRep(r))], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
+						)
+					)
+				) +
+
+				%Cart maintenance platforms
+				(sum c:Cart . (cartsbroken(getCart(c)) && (locs(getCart(c)) == 1 || locs(getCart(c)) == 5 || locs(getCart(c)) == 7 || locs(getCart(c)) == 9)) -> 
+					r_cart_fixed(c) . CartControl(locs, rm, reqs, full, swstate, swbroken, cartsbroken[getCart(c)->false], backup, backupcart)
+				) + 
+				
+	
 				%Switch breaking and fixing
-				(!swbroken -> r_switch_broken . CartControl(locs, rm, reqs, full, swstate, true, cartsbroken)) +
-				(s_switch_fixed . CartControl(locs, rm, reqs, full, swstate, false, cartsbroken)) +
+				(!swbroken -> r_switch_broken . CartControl(locs, rm, reqs, full, swstate, true, cartsbroken, backup, backupcart)) +
+				(s_switch_fixed . CartControl(locs, rm, reqs, full, swstate, false, cartsbroken, backup, backupcart)) +
+
 				%Request acceptance
-				(sum c:Cart, r:Refinery . s_request(c, r) . CartControl(locs, rm, reqs[getRef(r)->true], full, swstate, swbroken, cartsbroken)) +
+				(sum c:Cart, r:Refinery . s_request(c, r) . CartControl(locs, rm, reqs[getRef(r)->true], full, swstate, swbroken, cartsbroken, backup, backupcart)) +
 				
 				%Car movement
-				(sum c:Cart, r:Refinery . ( reqs(getRef(r)) && rm(getRef(r)) == c && !cartsbroken(getCart(c))) ->
+				(sum c:Cart, r:Refinery . ( reqs(getRef(r)) && (rm(getRef(r)) == c) && !cartsbroken(getCart(c))) ->
 					( full(getCart(c)) ->
 						( (locs(getCart(c)) == getRefLoc(r)) ->
-							( r_empty(c, r) . CartControl(locs, rm, reqs[getRef(r)->false], full[getCart(c)->false], swstate, swbroken, cartsbroken) ) 
+							( r_empty(c, r) . 
+								( (getSection(getRefRep(r)) == locs(getCart(backupcart))) -> 
+									(r_refmap_changed(r, backupcart) . CartControl(locs, rm[getRef(r)->backupcart], reqs[getRef(r)->false], full[getCart(c)->false], swstate, swbroken, cartsbroken, false, c))
+								<>
+									CartControl(locs, rm, reqs[getRef(r)->false], full[getCart(c)->false], swstate, swbroken, cartsbroken, backup, backupcart)
+								)
+							)
 						<>
 							( (locs(getCart(c)) == 2) -> 
 								( ((swstate != getRefSwitch(r)) && !swbroken) -> 
-									switch_changed(getRefSwitch(r)) . CartControl(locs, rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken) 
+									switch_changed(getRefSwitch(r)) . CartControl(locs, rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken, backup, backupcart) 
 								<> 
 									( (!(exists d:Cart . locs(getCart(d)) == 3) && !swbroken) ->
-										section_free(s3) . r_move_to(c, s3) . section_occupied(s3) . CartControl(locs[getCart(c)->3], rm, reqs, full, swstate, swbroken, cartsbroken)
+										r_move_to(c, s3) . section_occupied(s3) . section_free(s2) . CartControl(locs[getCart(c)->3], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
 									)
 								)
 							<>
 								( ((locs(getCart(c)) == 3) && !swbroken) ->
 									( !(exists d:Cart . locs(getCart(d)) == getRefLoc(r)) ->
-										section_free(getSecByNat(getRefLoc(r))) . r_move_to(c, getRefSec(r)) . section_occupied(getSecByNat(getRefLoc(r))) . CartControl(locs[getCart(c)->getRefLoc(r)], rm, reqs, full, swstate, swbroken, cartsbroken)
+										r_move_to(c, getRefSec(r)) . section_occupied(getSecByNat(getRefLoc(r))) . section_free(s3) . CartControl(locs[getCart(c)->getRefLoc(r)], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
 									)
 								)
 							) 
 						) 
 					<>
 						( (locs(getCart(c)) == getRefLoc(r)) ->
-							( (!swbroken && !(exists d:Cart . locs(getCart(d)) == 3 || locs(getCart(d)) == 2)) ->
+							( (!swbroken && (!exists d:Cart . locs(getCart(d)) == 3 || locs(getCart(d)) == 2)) ->
 								( (swstate != getRefSwitch(r)) -> 
-									switch_changed(getRefSwitch(r)) . section_free(s3) . r_move_to(c, s3) . section_occupied(s3) . CartControl(locs[getCart(c)->3], rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken) 
+									switch_changed(getRefSwitch(r)) . r_move_to(c, s3) . section_occupied(s3) . section_free(getSecByNat(getRefLoc(r))) . CartControl(locs[getCart(c)->3], rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken, backup, backupcart) 
 								<>
-									section_free(s3) . r_move_to(c, s3) . section_occupied(s3) . CartControl(locs[getCart(c)->3], rm, reqs, full, swstate, swbroken, cartsbroken)
+									r_move_to(c, s3) . section_occupied(s3) . section_free(getSecByNat(getRefLoc(r))) . CartControl(locs[getCart(c)->3], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
 								)
 							)
 						<>
 							( (locs(getCart(c)) == 3) -> 
 								( (!(exists d:Cart . locs(getCart(d)) == 2) && !swbroken) ->
-									section_free(s2) . r_move_to(c, s2) . section_occupied(s2) . CartControl(locs[getCart(c)->2], rm, reqs, full, swstate, swbroken, cartsbroken)
+									r_move_to(c, s2) . section_occupied(s2) . section_free(s3) . CartControl(locs[getCart(c)->2], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
 								)
 							<>
 								( (locs(getCart(c)) == 2) ->
-									r_fill . s_filled . CartControl(locs, rm, reqs, full[getCart(c)->true], swstate, swbroken, cartsbroken)
+									(r_fill . CartControl(locs, rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart) +
+									s_filled . CartControl(locs, rm, reqs, full[getCart(c)->true], swstate, swbroken, cartsbroken, backup, backupcart))
+								<>
+									( (locs(getCart(c)) == 1) ->
+										( (!(exists d:Cart . locs(getCart(d)) == 2 || locs(getCart(d)) == 3)) ->
+											r_move_to(c, s2) . section_occupied(s2) . section_free(s1) . CartControl(locs[getCart(c)->2], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
+										)
+									<>
+										( (locs(getCart(c)) == getSection(getRefRep(r))) ->
+											( !(exists d:Cart . locs(getCart(d)) == getRefLoc(r)) && !backup) ->
+												r_move_to(c, getRefSec(r)) . section_occupied(getRefSec(r)) . section_free(getRefRep(r)) . CartControl(locs[getCart(c)->getRefLoc(r)], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
+											)
+									)
 								)
 							)
 						)
@@ -255,7 +322,7 @@ proc
 
 init 
 	allow(
-		{request_load, receive_load, furnace_unload, furnace_broken, furnace_fixed, refinery_broken, refinery_fixed, cart_broken, cart_fixed, cart_empty_on_spot, switch_broken, switch_fixed, cart_reassigned, switch_changed, cart_move, section_free, section_occupied},
+		{request_load, receive_load, furnace_unload, furnace_broken, furnace_fixed, refinery_broken, refinery_fixed, cart_broken, cart_fixed, cart_empty_on_spot, switch_broken, switch_fixed, cart_reassigned, switch_changed, cart_move, section_free, section_occupied, cart_fixed_on_spot, furnace_unloaded},
 		comm(
 			{r_request|s_request -> request_load,
 			 r_empty|s_empty -> receive_load,
@@ -268,9 +335,10 @@ init
 			 r_move_to|s_move_to -> cart_move,
 			 r_cart_broken|s_cart_broken -> cart_broken,
 			 r_cart_fixed|s_cart_fixed -> cart_fixed,
+			 r_cart_fixed_on_spot|s_cart_fixed_on_spot -> cart_fixed_on_spot,
 			 r_switch_broken|s_switch_broken -> switch_broken,
 			 r_switch_fixed|s_switch_fixed -> switch_fixed,
 			 r_refmap_changed|s_refmap_changed -> cart_reassigned},
-		CartControl(locInit, refInit, reqsInit, fullInit, middle, false, cartbrokenInit) || IronController(refInit, reqsInit, false, refbrokenInit) || Repair(refbrokenInit, false, cartbrokenInit)
+		CartControl(locInit, refInit, reqsInit, fullInit, middle, false, cartbrokenInit, false, c4) || IronController(refInit, reqsInit, false, refbrokenInit, false) || Repair(refbrokenInit, false, cartbrokenInit)
 	));
 
