@@ -173,6 +173,7 @@ proc
 				(sum r:Refinery . (!refBroken(getRef(r)) ->
 					r_ref_broken(r).IronController(rm, reqs, furBroken, refBroken[getRef(r)->true], furFilling))) +
 				(sum r:Refinery . s_ref_fixed(r) . IronController(rm, reqs, furBroken, refBroken[getRef(r)->false], furFilling)) + 
+				%Refmap changes
 				(sum c:Cart, r:Refinery . s_refmap_changed(r,c) . IronController(rm[getRef(r) -> c], reqs, furBroken, refBroken, furFilling)) +
 				%Cart moving
 				(sum c:Cart, s:Section . s_move_to(c, s) . IronController(rm, reqs, furBroken, refBroken, furFilling));

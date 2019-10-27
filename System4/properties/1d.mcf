@@ -1,1 +1,1 @@
-[true*]forall c:Cart . forall r:Refinery . <move_to(c, s2)>[!furnace_unload*]<furnace_unload>[!(receive_load(c,r) || cart_empty_on_spot(c))*]<move_to(c, s2)*>[!furnace_unload*]<furnace_unload>false
+[true*]forall c:Cart . forall r:Refinery . <cart_move(c, s2)>[!furnace_unload*]<furnace_unload>[!(receive_load(c,r) || cart_empty_on_spot(c))*]<cart_move(c, s2)*>[!furnace_unload*]<furnace_unload>false
