@@ -1,1 +1,1 @@
-[true*]forall c:Cart. <cart_move(c, s2)> forall s:Section. [!cart_move(c,s)*] <furnace_unload>[!furnace_unloaded*]forall t:Section.<cart_move(c,t)>false
+[true*]forall c:Cart.[cart_move(c, s2)] forall s:Section. [!cart_move(c,s)*] [furnace_unload][!furnace_unloaded*]forall t:Section.[cart_move(c,t)]false

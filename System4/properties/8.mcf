@@ -1,1 +1,1 @@
-[true*]<switch_broken>[!switch_fixed*]<switch_fixed>true
+[!switch_broken*][switch_broken][!switch_fixed*][switch_fixed]true

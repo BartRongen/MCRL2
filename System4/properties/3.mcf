@@ -1,1 +1,1 @@
-[true*][furnace_broken][!furnace_fixed*]<furnace_fixed>true
+[!furnace_broken*][furnace_broken][!furnace_fixed*][furnace_fixed]true

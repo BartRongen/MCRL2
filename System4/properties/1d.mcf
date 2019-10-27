@@ -1,1 +1,1 @@
-[true*]<furnace_unloaded>[!section_free(s2)*]<furnace_unload>false
+[!furnace_unloaded*][furnace_unloaded][!section_free(s2)*][furnace_unload]false
