@@ -1,1 +1,1 @@
-[true*]forall c:Cart. forall r:Refinery. <request_load(c,r)>[!receive_load(c,r)*]<request_load(c,r)>true
+[true*]forall c:Cart. forall r:Refinery. <request_load(c,r)>[!receive_load(c,r)*]<receive_load(c,r)>true

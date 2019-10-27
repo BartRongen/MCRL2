@@ -1,0 +1,1 @@
+[true*]exists c:Cart. <cart_move(c, s2)>[!section_occupied(s2)*]<section_occupied(s2)>[!section_free(s2)*]exists s:Section. <cart_move(c, s)>[!section_free(s2)*]<furnace_unload>false
