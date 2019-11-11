@@ -1,4 +1,7 @@
 <root>
  <spec>SystemNoBreaks_spec.mcrl2</spec>
- <properties/>
+ <properties>
+  <property>1A</property>
+  <property>1B</property>
+ </properties>
 </root>

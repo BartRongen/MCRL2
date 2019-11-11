@@ -1,0 +1,3 @@
+nu X(cartPos:LocArray=locInit).(forall c:Cart.forall s:Section.[cart_move(c,s)]X(cartPos[getCart(c)->getSection(s)])) &&
+
+forall c:Cart.[!cart_move(c,s2)*][cart_move(c,s2)][!section_occupied(s2)*][section_occupied(s2)][!section_free(s2)*]exists l:Section.[cart_move(c,l)][!section_free(s2)*][furnace_unload]false
