@@ -1,0 +1,1 @@
+forall c:Cart. forall r:Refinery. [true*][request_load(c,r)]mu X.[!receive_load(c,r)*]X && <true>true

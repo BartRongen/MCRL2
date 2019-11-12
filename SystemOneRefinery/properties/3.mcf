@@ -1,1 +1,1 @@
-[true*.furnace_broken]<true*.furnace_fixed>true
+[true*][furnace_broken]mu X.[!furnace_fixed*]X && <true>true
