@@ -1,0 +1,1 @@
+forall s:Section. [true*][section_occupied(s)][!section_free(s)*]forall c:Cart. [cart_move(c,s)]false
