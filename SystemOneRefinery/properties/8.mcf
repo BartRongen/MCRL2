@@ -1,1 +1,1 @@
-forall r:Refinery. [true*][refinery_broken(r)]mu X.[!refinery_fixed(r)]X && <true>true
+[true*][switch_broken]mu X.[!switch_fixed]X && <true>true
