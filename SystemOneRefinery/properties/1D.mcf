@@ -1,0 +1,6 @@
+nu X(cartPos: LocArray = locInit, cartFull: IsFull = fullInit).(
+(forall c:Cart, s:Section.[cart_move(c,s)]X(cartPos[getCart(c)->getSection(s)], cartFull)) && 
+(forall c:Cart.(val(cartPos(getCart(c)) == 2) => [furnace_unloaded]X(cartPos, cartFull[getCart(c)->true]))) && 
+(forall c:Cart,r:Refinery.[receive_load(c,r)]X(cartPos, cartFull[getCart(c)->false])) && 
+(forall c:Cart, s:Section, r:Refinery.[!cart_move(c,s) && !furnace_unloaded && !receive_load(c,r)]X(cartPos,cartFull)) &&
+(forall c:Cart.((val(cartFull(getCart(c))) && val(cartPos(getCart(c)) == 2)) => [furnace_unload]false)))

@@ -14,6 +14,9 @@ sort CartsBroken = Nat -> Bool;
 %Stores the broken states of the refineries
 sort RefBroken = Nat -> Bool;
 
+sort CartFull = Nat -> Bool;
+
+
 glob refmap: RefMap;
 
 %Maps the carts to Nat in order to use them in an array (mcrl2 doesn't allow Cart as index).
@@ -120,6 +123,13 @@ eqn
 	refbrokenInit(1) = false;
 	refbrokenInit(2) = false;
 	refbrokenInit(3) = false;
+
+map cartFullInit: Nat -> Bool;
+eqn
+	cartFullInit(1) = false;
+	cartFullInit(2) = false;
+	cartFullInit(3) = false;
+	cartFullInit(4) = false;
 
 act
 	%Requests between controller and cartcontroller

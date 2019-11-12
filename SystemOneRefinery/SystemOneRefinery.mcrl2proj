@@ -1,4 +1,6 @@
 <root>
  <spec>SystemOneRefinery_spec.mcrl2</spec>
- <properties/>
+ <properties>
+  <property>1D</property>
+ </properties>
 </root>
