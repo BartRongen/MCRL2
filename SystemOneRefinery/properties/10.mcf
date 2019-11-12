@@ -1,0 +1,3 @@
+forall c:Cart. [true*.cart_broken(c)]((<true*.cart_move(c,s5).true*.cart_fixed(c)>true) ||
+(<true*.cart_move(c,s7).true*.cart_fixed(c)>true) ||
+(<true*.cart_move(c,s9).true*.cart_fixed(c)>true) ||(<true*.cart_move(c,s1).true*.cart_fixed(c)>true))
