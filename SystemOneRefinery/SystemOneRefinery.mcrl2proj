@@ -2,5 +2,6 @@
  <spec>SystemOneRefinery_spec.mcrl2</spec>
  <properties>
   <property>1D</property>
+  <property>3</property>
  </properties>
 </root>
