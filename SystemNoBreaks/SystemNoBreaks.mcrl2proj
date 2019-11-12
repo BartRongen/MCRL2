@@ -3,11 +3,8 @@
  <properties>
   <property>1A</property>
   <property>1B</property>
-<<<<<<< HEAD
-  <property>1D</property>
-=======
   <property>1C</property>
+  <property>1D</property>
   <property>2</property>
->>>>>>> 42af24b77b4acfbc40291cdf3afecd1924ba14b5
  </properties>
 </root>
