@@ -1,0 +1,4 @@
+nu X(outstandingRequests : OutstandingRequests = reqsInit). 
+(forall c:Cart. forall r:Refinery. ([request_load(c,r)]X(outstandingRequests[getRef(r)->true]))) &&
+(forall c:Cart. forall r:Refinery.([receive_load(c,r)]X(outstandingRequests[getRef(r)->false]))) &&
+((forall r:Refinery. val(!outstandingRequests(getRef(r)))) => [furnace_unload]false)
