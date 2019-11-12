@@ -155,7 +155,7 @@ act
 	s_switch_broken, r_switch_broken, switch_broken, r_switch_fixed, s_switch_fixed, switch_fixed;
 
 	%Switch changes
-	switch_changed: SwitchState;
+	switch_change, switch_changed: SwitchState;
 
 	%Section occupied or free
 	section_occupied, section_free: Section;
@@ -199,7 +199,7 @@ proc
 						<>
 							( (locs(getCart(c)) == 2) -> 
 								( ((swstate != getRefSwitch(r)) && !swbroken) -> 
-									switch_changed(getRefSwitch(r)) . CartControl(locs, rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken, backup, backupcart) 
+									switch_change(getRefSwitch(r)) . switch_changed(getRefSwitch(r)) . CartControl(locs, rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken, backup, backupcart) 
 								<> 
 									( (!(exists d:Cart . locs(getCart(d)) == 3) && !swbroken) ->
 										r_move_to(c, s3) . section_occupied(s3) . section_free(s2) . CartControl(locs[getCart(c)->3], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
@@ -217,7 +217,7 @@ proc
 						( (locs(getCart(c)) == getRefLoc(r)) ->
 							( (!swbroken && (!exists d:Cart . locs(getCart(d)) == 3 || locs(getCart(d)) == 2)) ->
 								( (swstate != getRefSwitch(r)) -> 
-									switch_changed(getRefSwitch(r)) . r_move_to(c, s3) . section_occupied(s3) . section_free(getSecByNat(getRefLoc(r))) . CartControl(locs[getCart(c)->3], rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken, backup, backupcart) 
+									switch_change(getRefSwitch(r)) . switch_changed(getRefSwitch(r)) . r_move_to(c, s3) . section_occupied(s3) . section_free(getSecByNat(getRefLoc(r))) . CartControl(locs[getCart(c)->3], rm, reqs, full, getRefSwitch(r), swbroken, cartsbroken, backup, backupcart) 
 								<>
 									r_move_to(c, s3) . section_occupied(s3) . section_free(getSecByNat(getRefLoc(r))) . CartControl(locs[getCart(c)->3], rm, reqs, full, swstate, swbroken, cartsbroken, backup, backupcart)
 								)

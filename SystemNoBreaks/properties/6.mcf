@@ -1,0 +1,1 @@
+forall s:SwitchState. ([true*.switch_change(s).!switch_changed(s)*] forall c:Cart, t:Section. [cart_move(c,t)]false)
