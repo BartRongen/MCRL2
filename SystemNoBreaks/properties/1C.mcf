@@ -1,0 +1,3 @@
+nu X(cartPos:LocArray=locInit).(forall c:Cart.forall s:Section.(<cart_move(c,s)>X(cartPos[getCart(c)->getSection(s)]) ||
+<!cart_move(c,s)>X(cartPos)) &&
+forall d:Cart. (val(cartPos(getCart(d)) == 2)) => [furnace_unload.!furnace_unloaded*] forall t:Section. [cart_move(d,t)]false)

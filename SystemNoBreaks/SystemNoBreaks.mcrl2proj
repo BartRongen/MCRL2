@@ -3,5 +3,7 @@
  <properties>
   <property>1A</property>
   <property>1B</property>
+  <property>1C</property>
+  <property>2</property>
  </properties>
 </root>
