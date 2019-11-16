@@ -1,0 +1,2 @@
+forall c:Cart. [true*.cart_broken(c)]
+mu X.[!(cart_move(c,s5)|| cart_move(c,s7) || cart_move(c,s9)||cart_move(c,s1))]X && <true>true

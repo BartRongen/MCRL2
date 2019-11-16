@@ -1,0 +1,1 @@
+forall c:Cart. [true*.cart_broken(c)] mu X.[!cart_fixed(c)]X && <true>true
